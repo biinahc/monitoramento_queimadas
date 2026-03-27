@@ -1,79 +1,122 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
-
-URL_PORTAL = "https://terrabrasilis.dpi.inpe.br/queimadas/portal/"
+URL = "https://terrabrasilis.dpi.inpe.br/queimadas/portal/"
 PASTA_DOWNLOAD = Path("data/bruto")
+PASTA_DOWNLOAD.mkdir(parents=True, exist_ok=True)
 
 
-XPATH_CARD = "/html/body/main/div[2]/div[2]/div[1]/a/div"
-XPATH_BOTAO_DOWNLOAD = '//*[@id="da-focos"]/div/div/div[1]/div[2]/div/div[1]/a'
+def clicar_card_focos(page):
+    seletores = [
+        "a.custom-card:has-text('Focos de Queimadas')",
+        "text='Focos de Queimadas'",
+        "a[href*='da-focos']"
+    ]
+
+    for seletor in seletores:
+        try:
+            locator = page.locator(seletor).first
+            locator.wait_for(state="visible", timeout=5000)
+            locator.click()
+            print("Card clicado.")
+            return
+        except:
+            continue
+
+    raise RuntimeError("Não conseguiu clicar no card.")
 
 
-def garantir_pasta_download() -> None:
-    PASTA_DOWNLOAD.mkdir(parents=True, exist_ok=True)
+def clicar_botao_10min(page):
+    seletores = [
+        "a[aria-label='10 min']",
+        "a[href*='10min']"
+    ]
+
+    for seletor in seletores:
+        try:
+            locator = page.locator(seletor).first
+            locator.wait_for(state="visible", timeout=5000)
+            locator.click()
+            print("Botão 10 min clicado.")
+            return
+        except:
+            continue
+
+    raise RuntimeError("Não conseguiu clicar no botão 10 min.")
 
 
-def baixar_arquivo_mais_recente(headless: bool = False) -> Path:
-    garantir_pasta_download()
+def baixar_arquivo_mais_recente(page):
+    print("Procurando arquivos CSV...")
 
+    page.wait_for_timeout(3000)
+
+    links_csv = page.locator("a[href$='.csv']")
+    total = links_csv.count()
+
+    if total == 0:
+        raise RuntimeError("Nenhum CSV encontrado.")
+
+    print(f"{total} arquivos encontrados.")
+
+    ultimo = links_csv.nth(total - 1)
+
+    nome = ultimo.inner_text().strip()
+    if not nome:
+        nome = "arquivo_queimadas.csv"
+
+    caminho = PASTA_DOWNLOAD / nome
+
+    print(f"Baixando: {nome}")
+
+    with page.expect_download(timeout=60000) as download_info:
+        ultimo.click()
+
+    download = download_info.value
+    download.save_as(str(caminho))
+
+    print(f"Arquivo salvo em: {caminho}")
+    return caminho
+
+
+def iniciar_automacao():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        context = browser.new_context(accept_downloads=True)
+        browser = p.chromium.launch(headless=False, args=["--start-maximized"])
+        context = browser.new_context(no_viewport=True, accept_downloads=True)
         page = context.new_page()
 
         try:
-            print("Abrindo portal de queimadas...")
-            page.goto(URL_PORTAL, wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(3000)
+            print("Abrindo portal...")
+            page.goto(URL, wait_until="networkidle")
 
             print("Clicando no card...")
-            page.locator(f"xpath={XPATH_CARD}").click(timeout=10000)
+            clicar_card_focos(page)
+
             page.wait_for_timeout(3000)
 
-            print("Clicando no botão de download...")
-            page.locator(f"xpath={XPATH_BOTAO_DOWNLOAD}").click(timeout=10000)
-            page.wait_for_load_state("domcontentloaded")
+            print("Clicando no botão 10 min...")
+            clicar_botao_10min(page)
+
+            print("Aguardando nova aba...")
             page.wait_for_timeout(5000)
 
-            print("Localizando os arquivos CSV...")
-            links_csv = page.locator("a[href$='.csv']")
+            # ⚠️ IMPORTANTE: abre nova aba
+            pages = context.pages
+            if len(pages) > 1:
+                page = pages[-1]
 
-            quantidade = links_csv.count()
-            if quantidade == 0:
-                raise RuntimeError("Nenhum arquivo CSV foi encontrado na página.")
+            print("Baixando arquivo mais recente...")
+            baixar_arquivo_mais_recente(page)
 
-            print(f"Foram encontrados {quantidade} arquivos. Selecionando o último...")
-
-            ultimo_link = links_csv.nth(quantidade - 1)
-
-            nome_arquivo = ultimo_link.inner_text().strip()
-            if not nome_arquivo:
-                nome_arquivo = f"arquivo_queimadas_{quantidade}.csv"
-
-            caminho_final = PASTA_DOWNLOAD / nome_arquivo
-
-            print(f"Baixando: {nome_arquivo}")
-
-            with page.expect_download(timeout=60000) as download_info:
-                ultimo_link.click()
-
-            download = download_info.value
-            download.save_as(str(caminho_final))
-
-            print(f"Arquivo salvo em: {caminho_final}")
-            return caminho_final
+            print("Automação finalizada com sucesso.")
 
         except PlaywrightTimeoutError:
-            raise RuntimeError("Tempo excedido durante a automação.")
+            print("Erro: tempo excedido.")
+        except Exception as e:
+            print(f"Erro: {e}")
         finally:
             context.close()
             browser.close()
 
 
 if __name__ == "__main__":
-    try:
-        arquivo = baixar_arquivo_mais_recente(headless=False)
-        print(f"Download concluído com sucesso: {arquivo}")
-    except Exception as erro:
-        print(f"Erro na automação: {erro}")
+    iniciar_automacao()

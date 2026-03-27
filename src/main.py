@@ -1,21 +1,47 @@
+import os
+from pathlib import Path
 from coleta import carregar_dados_csv
-from tratamento import resumo_inicial
-from visualizacao import gerar_grafico_exemplo
+from tratamento import resumo_inicial, filtrar_amazonia, resumo_queimadas
+from visualizacao import gerar_grafico_por_satelite
+
+PASTA_DADOS = Path("data/bruto")
+
+
+def obter_arquivo_mais_recente(pasta: Path) -> Path:
+    arquivos = list(pasta.glob("*.csv"))
+
+    if not arquivos:
+        raise FileNotFoundError("Nenhum arquivo CSV encontrado na pasta.")
+
+    return max(arquivos, key=os.path.getctime)
 
 
 def main():
-    caminho_arquivo = "data/bruto/dados_queimadas.csv"
+    try:
+        print("Buscando arquivo mais recente...")
 
-    df = carregar_dados_csv(caminho_arquivo)
+        arquivo = obter_arquivo_mais_recente(PASTA_DADOS)
+        print(f"Arquivo encontrado: {arquivo}")
 
-    if df.empty:
-        print("Nenhum dado carregado.")
-        return
+        print("\nCarregando dados...")
+        df = carregar_dados_csv(str(arquivo))
 
-    resumo_inicial(df)
+        if df.empty:
+            print("Erro ao carregar dados.")
+            return
 
-    # Troque pela coluna real quando soubermos os nomes do arquivo
-    # gerar_grafico_exemplo(df, "estado")
+        resumo_inicial(df)
+
+        print("\nFiltrando focos na região da Amazônia...")
+        df_amazonia = filtrar_amazonia(df)
+
+        resumo_queimadas(df_amazonia)
+
+        print("\nGerando gráfico...")
+        gerar_grafico_por_satelite(df_amazonia)
+
+    except Exception as e:
+        print(f"Erro: {e}")
 
 
 if __name__ == "__main__":
