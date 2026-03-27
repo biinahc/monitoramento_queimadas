@@ -1,7 +1,12 @@
 import os
 from pathlib import Path
 from coleta import carregar_dados_csv
-from tratamento import resumo_inicial, filtrar_amazonia, resumo_queimadas
+from tratamento import (
+    resumo_inicial,
+    filtrar_amazonia,
+    resumo_queimadas,
+    salvar_dados_tratados
+)
 from visualizacao import gerar_grafico_por_satelite
 
 PASTA_DADOS = Path("data/bruto")
@@ -37,8 +42,13 @@ def main():
 
         resumo_queimadas(df_amazonia)
 
+        nome_saida = f"amazonia_{arquivo.name}"
+        salvar_dados_tratados(df_amazonia, nome_saida)
+
         print("\nGerando gráfico...")
         gerar_grafico_por_satelite(df_amazonia)
+
+        print("\nProcessamento concluído com sucesso.")
 
     except Exception as e:
         print(f"Erro: {e}")

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 
@@ -45,3 +46,13 @@ def resumo_queimadas(df: pd.DataFrame) -> None:
         print("⚠️ Atenção: nível moderado de focos.")
     else:
         print("✅ Situação sob controle.")
+
+
+def salvar_dados_tratados(df: pd.DataFrame, nome_arquivo: str, pasta_saida: str = "data/tratado") -> str:
+    os.makedirs(pasta_saida, exist_ok=True)
+
+    caminho_saida = os.path.join(pasta_saida, nome_arquivo)
+    df.to_csv(caminho_saida, index=False, encoding="utf-8")
+
+    print(f"Arquivo tratado salvo em: {caminho_saida}")
+    return caminho_saida
