@@ -3,7 +3,6 @@ from pathlib import Path
 from coleta import carregar_dados_csv
 from tratamento import (
     resumo_inicial,
-    filtrar_amazonia,
     resumo_queimadas,
     salvar_dados_tratados
 )
@@ -37,16 +36,13 @@ def main():
 
         resumo_inicial(df)
 
-        print("\nFiltrando focos na região da Amazônia...")
-        df_amazonia = filtrar_amazonia(df)
+        resumo_queimadas(df)
 
-        resumo_queimadas(df_amazonia)
-
-        nome_saida = f"amazonia_{arquivo.name}"
-        salvar_dados_tratados(df_amazonia, nome_saida)
+        nome_saida = f"tratado_{arquivo.name}"
+        salvar_dados_tratados(df, nome_saida)
 
         print("\nGerando gráfico...")
-        gerar_grafico_por_satelite(df_amazonia)
+        gerar_grafico_por_satelite(df)
 
         print("\nProcessamento concluído com sucesso.")
 
