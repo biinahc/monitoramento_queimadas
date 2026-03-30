@@ -6,7 +6,7 @@ from tratamento import (
     resumo_queimadas,
     salvar_dados_tratados
 )
-from visualizacao import gerar_grafico_por_satelite
+from visualizacao import gerar_grafico_por_satelite, gerar_mapa_focos
 
 PASTA_DADOS = Path("data/bruto")
 
@@ -41,8 +41,9 @@ def main():
         nome_saida = f"tratado_{arquivo.name}"
         salvar_dados_tratados(df, nome_saida)
 
-        print("\nGerando gráfico...")
+        print("\nGerando gráficos e mapas...")
         gerar_grafico_por_satelite(df)
+        gerar_mapa_focos(df)
 
         print("\nProcessamento concluído com sucesso.")
 
