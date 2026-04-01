@@ -4,9 +4,11 @@ from coleta import carregar_dados_csv
 from tratamento import (
     resumo_inicial,
     resumo_queimadas,
-    salvar_dados_tratados
+    salvar_dados_tratados,
+    adicionar_cidade_estado,
+    salvar_dados_excel
 )
-from visualizacao import gerar_grafico_por_satelite, gerar_mapa_focos
+from visualizacao import gerar_mapa_focos
 
 PASTA_DADOS = Path("data/bruto")
 
@@ -36,13 +38,16 @@ def main():
 
         resumo_inicial(df)
 
+        df = adicionar_cidade_estado(df)
         resumo_queimadas(df)
 
         nome_saida = f"tratado_{arquivo.name}"
         salvar_dados_tratados(df, nome_saida)
+        
+        nome_excel = arquivo.name.replace(".csv", ".xlsx")
+        salvar_dados_excel(df, nome_excel)
 
-        print("\nGerando gráficos e mapas...")
-        gerar_grafico_por_satelite(df)
+        print("\nGerando mapa interativo...")
         gerar_mapa_focos(df)
 
         print("\nProcessamento concluído com sucesso.")

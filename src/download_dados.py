@@ -99,7 +99,6 @@ def iniciar_automacao():
             print("Aguardando nova aba...")
             page.wait_for_timeout(5000)
 
-            # ⚠️ IMPORTANTE: abre nova aba
             pages = context.pages
             if len(pages) > 1:
                 page = pages[-1]
