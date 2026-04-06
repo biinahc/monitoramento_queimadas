@@ -43,7 +43,7 @@ def salvar_dados_tratados(df: pd.DataFrame, nome_arquivo: str, pasta_saida: str 
 
 
 def adicionar_cidade_estado(df: pd.DataFrame) -> pd.DataFrame:
-    """Busca a cidade e estado baseados nas coordenadas lat/lon de forma ultra rápida (offline)."""
+    """Busca a cidade e estado baseados nas coordenadas lat/lon de forma ultra rápida (offline) e trata dados extras."""
     if df.empty or 'lat' not in df.columns or 'lon' not in df.columns:
         print("Coordenadas (lat/lon) não encontradas para geocodificação.")
         return df
@@ -64,25 +64,50 @@ def adicionar_cidade_estado(df: pd.DataFrame) -> pd.DataFrame:
         
         cidades = []
         estados = []
+        paises = []
         
         for res, original_coord in zip(resultados, coords):
             if original_coord == (0.0, 0.0):
                 cidades.append("Invalido")
                 estados.append("Invalido")
+                paises.append("Invalido")
             else:
                 cidades.append(res.get('name', 'Desconhecido'))
                 estados.append(res.get('admin1', 'Desconhecido'))
+                paises.append(res.get('cc', 'Desconhecido'))
     except Exception as e:
         print(f"Erro na conversao de coordenadas: {e}")
         cidades = ["Erro"] * len(df)
         estados = ["Erro"] * len(df)
+        paises = ["Erro"] * len(df)
 
     df_copy = df.copy()
     df_copy['cidade'] = cidades
     df_copy['estado'] = estados
+    df_copy['país'] = paises
 
-    print(f"✅ {len(df)} pontos processados rapidamente!")
-    return df_copy
+    # Tratamento de datas
+    if 'data' in df_copy.columns:
+        try:
+            df_copy['data_original'] = df_copy['data']
+            df_copy['data'] = pd.to_datetime(df_copy['data'], errors='coerce')
+            df_copy['data_incendio'] = df_copy['data'].dt.strftime('%d/%m/%Y')
+            df_copy['hora_incendio'] = df_copy['data'].dt.strftime('%H:%M:%S')
+            df_copy['ano'] = df_copy['data'].dt.year
+            df_copy['mes'] = df_copy['data'].dt.month
+            
+            df_copy = df_copy.drop(columns=['data'])
+        except Exception as e:
+            print(f"Erro ao tratar a coluna de data: {e}")
+
+    print(f"✅ {len(df)} pontos processados e enriquecidos com sucesso!")
+    
+    # Reordenar colunas
+    colunas_desejadas = ['data_original', 'data_incendio', 'hora_incendio', 'ano', 'mes', 'cidade', 'estado', 'país', 'lat', 'lon', 'satelite']
+    colunas_finais = [col for col in colunas_desejadas if col in df_copy.columns]
+    colunas_restantes = [col for col in df_copy.columns if col not in colunas_finais]
+    
+    return df_copy[colunas_finais + colunas_restantes]
 
 
 def salvar_dados_excel(df: pd.DataFrame, nome_arquivo: str, pasta_saida: str = "output/dados") -> str:
