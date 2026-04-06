@@ -93,25 +93,24 @@ def iniciar_automacao():
 
             page.wait_for_timeout(3000)
 
-            print("Clicando no botão 10 min...")
-            clicar_botao_10min(page)
-
-            print("Aguardando nova aba...")
-            page.wait_for_timeout(5000)
-
-            pages = context.pages
-            if len(pages) > 1:
-                page = pages[-1]
+            print("Clicando no botão 10 min e aguardando nova aba...")
+            with context.expect_page() as new_page_info:
+                clicar_botao_10min(page)
+            
+            nova_aba = new_page_info.value
+            nova_aba.wait_for_load_state("networkidle", timeout=60000)
 
             print("Baixando arquivo mais recente...")
-            baixar_arquivo_mais_recente(page)
+            baixar_arquivo_mais_recente(nova_aba)
 
             print("Automação finalizada com sucesso.")
 
         except PlaywrightTimeoutError:
             print("Erro: tempo excedido.")
+            import sys; sys.exit(1)
         except Exception as e:
             print(f"Erro: {e}")
+            import sys; sys.exit(1)
         finally:
             context.close()
             browser.close()
