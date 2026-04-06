@@ -20,6 +20,11 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-echo Processamento concluido com sucesso! Abrindo o mapa de calor...
+echo Processamento concluido com sucesso! Abrindo o mapa de calor e a planilha Excel tratada...
 start "" "output\graficos\mapa_calor_queimadas.html"
+FOR /F "delims=" %%I IN ('dir "output\dados\*.xlsx" /B /O:-D') DO (
+    start "" "output\dados\%%I"
+    goto :fim
+)
+:fim
 pause
