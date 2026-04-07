@@ -42,7 +42,7 @@ def main():
             os.startfile(ultimo_excel)
             
     except Exception as e:
-        print(f"Erro ao tentar abrir os arquivos gerados: {e}")
+        print(f"Erro ao tentar abrir ssos arquivos gerados: {e}")
 
 if __name__ == '__main__':
     main()
